@@ -376,7 +376,7 @@ class LLMService:
         return self.generate_structured_workflow(
             messages=messages,
             response_model=LessonResponse,
-            max_tokens=4096,
+            max_tokens=10256,
         )
 
     def evaluate_checkpoint(
@@ -396,7 +396,7 @@ class LLMService:
         return self.generate_structured_workflow(
             messages=messages,
             response_model=TutorChatResponse,
-            max_tokens=1024,
+            max_tokens=10240,
         )
 
 
