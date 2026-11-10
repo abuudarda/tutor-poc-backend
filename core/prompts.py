@@ -136,8 +136,18 @@ Your task is to transform raw study material into a deeply engaging, multi-modul
    - **NEVER** include markdown symbols (`*`, `#`, `` ` ``, `_`), LaTeX syntax (`$x_i$`, `\\frac`), or raw URLs inside `welcome_spoken_intro`, `spoken_narration`, or `understanding_check.question_spoken`. Write out mathematical expressions in natural spoken English (e.g., write "the learning rate alpha times the gradient" instead of "$\\alpha \\nabla L$").
    - Meanwhile, `key_points` (3 to 4 per module) are concise visual cards rendered on the Left Panel whiteboard that highlight sequentially while `spoken_narration` plays. Keep each `key_points` item crisp, scannable, and under 18 words.
 
-2. **Pedagogical Fidelity**:
-   - Segment the source material into **3 to 5 logical modules** (`mod_1`, `mod_2`, ...) that build progressively from foundational intuition to deeper synthesis.
+2. **Dynamic Curriculum Decomposition Rule (Topic-Driven Module Count: 2 to 8+ Modules)**:
+   - First, analyze the length, conceptual density, and distinct sub-topics of `raw_text_extracted`.
+   - **NEVER default to 4 modules.** Dynamically choose the exact number of modules (`N`) needed so that **each distinct concept, theorem, section, or mechanism gets its own dedicated module**:
+     - Brief concept / single page (< 350 words with 1–2 core ideas): Generate **2 to 3 modules**.
+     - Standard textbook section (350–1,200 words with 3–5 distinct concepts): Generate **4 to 6 modules**.
+     - Dense or multi-section chapter (1,200+ words or 6+ distinct topics): Generate **6 to 8+ modules** (up to 12 modules for comprehensive chapters).
+   - Adjust granularity using `tutor_config.simplicity_level`:
+     - At lower simplicity levels (`1` or `2` - ELI5 / Heavy Intuition), break complex ideas into **more, smaller step-by-step modules** so the learner is never overwhelmed.
+     - At higher simplicity levels (`4` or `5` - Rigorous Academic), group foundational definitions concisely and dedicate individual modules to derivations, mathematical mechanics, and edge cases.
+
+3. **Module Structure & Pedagogical Fidelity**:
+   - Label modules sequentially (`mod_1`, `mod_2`, ..., `mod_N`) building progressively from foundational intuition to deeper synthesis.
    - `core_concept` is "The Big Idea (TL;DR)" banner at the top of the whiteboard: a single, memorable 1-2 sentence synthesis of the module's essence.
    - `visual_analogy` bridges `target_concept` (the technical idea) and `everyday_parallel` (a concrete, tangible real-world mental model calibrated to `simplicity_level`).
    - `understanding_check` powers "The True Understanding Gate":
@@ -145,8 +155,8 @@ Your task is to transform raw study material into a deeply engaging, multi-modul
      - `expected_concepts` must list 2 to 4 concise conceptual anchors or keywords the evaluator will check for.
      - `hint` must offer a gentle Socratic nudge without giving away the answer.
 
-3. **STRICT JSON OUTPUT CONTRACT**:
-   - After any internal reasoning (`<think>...</think>`), output **ONLY** a single valid JSON object matching this exact structure (no surrounding prose):
+4. **STRICT JSON OUTPUT CONTRACT**:
+   - After any internal reasoning (`<think>...</think>`), output **ONLY** a single valid JSON object matching this exact structure (containing `N` dynamically determined modules in `modules`, no surrounding prose):
    {
      "lesson_id": "lesson-001",
      "chapter_title": "String",
@@ -266,6 +276,33 @@ Do NOT include markdown fences, commentary, or explanations."""
 # Dynamic Message Builders
 # ============================================================================
 
+def _recommend_module_range(word_count: int, simplicity_level: int) -> str:
+    """Compute a dynamic module-count guidance string from material length and simplicity_level."""
+    if word_count < 350:
+        base_range = "2 to 3 modules (brief concept / single page)"
+    elif word_count <= 1200:
+        base_range = "4 to 6 modules (standard textbook section)"
+    else:
+        base_range = "6 to 8+ modules (dense or multi-section chapter)"
+
+    if simplicity_level <= 2:
+        granularity_note = (
+            f"Because `simplicity_level={simplicity_level}` (ELI5 / Heavy Intuition), favor the upper end "
+            "or add extra step-by-step modules so each module introduces only one intuitive idea at a time."
+        )
+    elif simplicity_level >= 4:
+        granularity_note = (
+            f"Because `simplicity_level={simplicity_level}` (Rigorous Academic), group foundational definitions "
+            "concisely and dedicate individual modules to formal derivations, mathematical mechanics, and edge cases."
+        )
+    else:
+        granularity_note = (
+            "Balance conceptual intuition and technical mechanisms across distinct topic modules."
+        )
+
+    return f"{base_range}. {granularity_note}"
+
+
 def build_lesson_generation_messages(
     request: GenerateLessonRequest,
 ) -> List[Dict[str, str]]:
@@ -274,6 +311,12 @@ def build_lesson_generation_messages(
 
     # Cap raw text to a safe context window while preserving full richness
     raw_text = request.source_material.raw_text_extracted.strip()
+    word_count = len(raw_text.split())
+    module_guidance = _recommend_module_range(
+        word_count=word_count,
+        simplicity_level=request.tutor_config.simplicity_level,
+    )
+
     if len(raw_text) > 28000:
         raw_text = raw_text[:28000] + "\n...[Content truncated for context window]..."
 
@@ -283,6 +326,8 @@ def build_lesson_generation_messages(
 - Session ID: {request.session_id}
 - File Name: {request.source_material.file_name}
 - Content Type: {request.source_material.content_type}
+- Extracted Word Count: {word_count} words
+- Dynamic Module Count Guidance: {module_guidance}
 
 ### LEARNER PEDAGOGICAL CONFIGURATION
 {pedagogy_block}
@@ -293,10 +338,11 @@ def build_lesson_generation_messages(
 \"\"\"
 
 Remember:
-1. Tailor the depth, analogies, and vocabulary strictly to `education_level="{request.tutor_config.education_level}"` and `simplicity_level={request.tutor_config.simplicity_level}`.
-2. Apply the `{request.tutor_config.methodology}` methodology and `{request.tutor_config.persona}` persona throughout `welcome_spoken_intro`, `spoken_narration`, and `understanding_check.question_spoken`.
-3. Ensure `welcome_spoken_intro`, `spoken_narration`, and `question_spoken` are 100% clean natural speech for TTS (no asterisks, hashes, or raw LaTeX).
-4. Output ONLY valid JSON matching the `LessonResponse` schema."""
+1. NEVER default to a fixed 4 modules. Dynamically determine the exact module count (`2 to 8+ modules`) based on the distinct concepts, sub-topics, word count ({word_count} words), and `simplicity_level={request.tutor_config.simplicity_level}`.
+2. Tailor the depth, analogies, and vocabulary strictly to `education_level="{request.tutor_config.education_level}"` and `simplicity_level={request.tutor_config.simplicity_level}`.
+3. Apply the `{request.tutor_config.methodology}` methodology and `{request.tutor_config.persona}` persona throughout `welcome_spoken_intro`, `spoken_narration`, and `understanding_check.question_spoken`.
+4. Ensure `welcome_spoken_intro`, `spoken_narration`, and `question_spoken` are 100% clean natural speech for TTS (no asterisks, hashes, or raw LaTeX).
+5. Output ONLY valid JSON matching the `LessonResponse` schema."""
 
     return [
         {"role": "system", "content": LESSON_SYNTHESIS_SYSTEM_PROMPT},

@@ -209,7 +209,11 @@ class LessonResponse(BaseModel):
     modules: List[LessonModule] = Field(
         ...,
         min_length=1,
-        description="Ordered sequence of interactive pedagogical modules.",
+        max_length=12,
+        description=(
+            "Dynamically sized sequence of interactive pedagogical modules (typically 2 to 8+ modules "
+            "based on source material length, conceptual density, and simplicity_level; never hardcoded to 4)."
+        ),
     )
 
 
