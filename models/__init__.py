@@ -1,0 +1,43 @@
+"""Socratica Studio Pydantic data models and strict API contracts."""
+
+from .schemas import (
+    ActiveModuleContext,
+    ChatMessage,
+    EducationLevel,
+    EvaluateCheckpointRequest,
+    EvaluateCheckpointResponse,
+    GenerateLessonRequest,
+    LessonModule,
+    LessonResponse,
+    Methodology,
+    ParseDocumentResponse,
+    Persona,
+    QuickAction,
+    SourceMaterial,
+    TutorChatRequest,
+    TutorChatResponse,
+    TutorConfig,
+    UnderstandingCheck,
+    VisualAnalogy,
+)
+
+__all__ = [
+    "ActiveModuleContext",
+    "ChatMessage",
+    "EducationLevel",
+    "EvaluateCheckpointRequest",
+    "EvaluateCheckpointResponse",
+    "GenerateLessonRequest",
+    "LessonModule",
+    "LessonResponse",
+    "Methodology",
+    "ParseDocumentResponse",
+    "Persona",
+    "QuickAction",
+    "SourceMaterial",
+    "TutorChatRequest",
+    "TutorChatResponse",
+    "TutorConfig",
+    "UnderstandingCheck",
+    "VisualAnalogy",
+]

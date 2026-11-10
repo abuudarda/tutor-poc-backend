@@ -1,0 +1,6 @@
+{
+  "name": "Socratica Studio FastAPI Backend",
+  "description": "Production Python FastAPI backend for Socratica Studio featuring NVIDIA Nemotron 3.5 document parsing, LLM-driven pedagogical lesson synthesis, semantic checkpoint evaluation, and live multimodal tutor chat.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
